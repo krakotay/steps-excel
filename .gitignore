@@ -1,0 +1,5 @@
+*.7z
+.venv
+examples/
+__pycache__/
+system/
