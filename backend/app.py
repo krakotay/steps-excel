@@ -137,11 +137,11 @@ with gr.Blocks() as app:
                 download_filtered = gr.File(label="Скачать разделенные по ИНН")
                 process_filter_button = gr.Button("Разложить по ИНН по листам")
 
-            def update_inn_list(df, file):
+            def update_inn_list(df: pl.DataFrame):
                 if df is not None and not df.is_empty():
                     # Предполагаем, что в df есть столбец с ИНН
-                    inn_values = df['ИНН'].unique().to_list()
-                    return gr.CheckboxGroup(choices=inn_values)
+                    inn_values = df['ИНН'].unique(maintain_order=True).to_list()
+                    return gr.CheckboxGroup(choices=inn_values, value=None)
                 return gr.CheckboxGroup(choices=[])
 
             process_button.click(
@@ -156,7 +156,7 @@ with gr.Blocks() as app:
                 outputs=[dataframe, download_output, inn_list_show],
             ).then(
                 fn=update_inn_list,
-                inputs=[dataframe, download_output],
+                inputs=[dataframe],
                 outputs=[inn_list_show]
             )
             

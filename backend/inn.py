@@ -18,8 +18,8 @@ def filter_by_inn(file, bank_name: str, date_start: str, date_end: str, boss_nam
     
     total_sum = aggregated_df["сумма"].sum()
     aggregated_df = aggregated_df.with_columns([
-        (pl.col("сумма") / total_sum).round(4).alias("процент")
-    ])
+        (pl.col("сумма") * 100 / total_sum).round(2).alias("процент")
+    ]).sort(by="сумма", descending=True)
     with pd.ExcelWriter(
         output_filename, mode="a", engine="openpyxl", if_sheet_exists="overlay"
     ) as writer:
