@@ -1,9 +1,10 @@
 import shutil
 import pandas as pd
 import polars as pl
+from make_title import create_title_page
 
 
-def filting(file, sheet_name: str, column: int, target_value: int):
+def filting(file, sheet_name: str, column: int, target_value: int, bank_name: str, date_start: str, date_end: str, boss_name: str):
     filename: str = file.name
     column_name = str(column)
 
@@ -49,6 +50,9 @@ def filting(file, sheet_name: str, column: int, target_value: int):
             sheet_name="ВЫБОРКА",
             index=False,
         )
+
+    # Добавляем титульный лист
+    create_title_page(out_filename, bank_name, date_start, date_end, boss_name)
 
     print(f"Готово! Проверьте файл {out_filename}")
     return out_filename

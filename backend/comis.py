@@ -5,6 +5,7 @@ import polars as pl
 import itertools
 from tqdm import tqdm
 import numpy as np
+from make_title import create_title_page
 
 INCOME = []
 with open("../income.txt", "r") as inc:
@@ -119,6 +120,10 @@ def comiss(
     type_value: Literal["Доход", "Расход"],
     target_value: int,
     timevalue: Literal["Первый", "Не первый"],
+    bank_name: str,
+    date_start: str,
+    date_end: str,
+    boss_name: str,
 ):
     filename: str = file.name
     # Создаем имя для выходного файла
@@ -159,8 +164,6 @@ def comiss(
     print("\nЗаписываем в копию файла...")
 
     # Открываем writer один раз и пишем оба листа
-    # if_sheet_exists='overlay' (или 'replace') – в зависимости от того,
-    # что именно вам нужно делать с уже существующими данными
     with pd.ExcelWriter(
         out_filename, mode="a", engine="openpyxl", if_sheet_exists="overlay"
     ) as writer:
@@ -172,6 +175,9 @@ def comiss(
         log_output = filter_by_target_percent(
             filtered, writer, target_value, COLUMN
         )
+
+    # Добавляем титульный лист
+    create_title_page(out_filename, bank_name, date_start, date_end, boss_name)
 
     print(f"Готово! Проверьте файл {out_filename}")
     return out_filename, log_output

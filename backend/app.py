@@ -1,13 +1,16 @@
 import gradio as gr
-from samle import process_file, scan_excel
+from samle import sample_process, scan_excel
 from comis import comiss
-from inn import filter_by_inn, filter_by_sample
+from inn import filter_by_inn, filter_by_inn_split
 from filter import filting
-
+import polars as pl
 # Создаем интерфейс с использованием Gradio Blocks и вкладок
 with gr.Blocks() as app:
-    gr.Markdown("# Excel Processor")
-
+    gr.HTML("""<h1 style="color: darkgreen;">ООО КНК</h1>""")
+    bank_name = gr.Textbox(label="Название аудироемого лица", value="Авангард")
+    date_value_start = gr.Textbox(label="Период проверки, начало", value="01-12-2024")
+    date_value_end = gr.Textbox(label="Период проверки, конец", value="31-12-2024")
+    boss_name = gr.Textbox(label="Руководитель проверки", value="Ельхимова Татьяна Викторовна")
     with gr.Tabs():
         # Первая вкладка с процессингом Excel файла
         with gr.TabItem("Метод систематической выборки (по шагам)"):
@@ -40,15 +43,19 @@ with gr.Blocks() as app:
                 outputs=[start_input, rows],
             )
             process_button.click(
-                process_file,
+                sample_process,
                 inputs=[
                     file_input,
                     sheet_input,
                     start_input,
                     green_input,
                     yellow_input,
+                    bank_name,
+                    date_value_start,
+                    date_value_end,
+                    boss_name,
                 ],
-                outputs=[download_output, output_text],
+                outputs=[download_output],
             )
 
         with gr.TabItem("комиссионки"):
@@ -90,37 +97,80 @@ with gr.Blocks() as app:
 
             process_button.click(
                 comiss,
-                inputs=[file_input, sheet_input, type_value, target_value, timevalue],
+                inputs=[
+                    file_input,
+                    sheet_input,
+                    type_value,
+                    target_value,
+                    timevalue,
+                    bank_name,
+                    date_value_start,
+                    date_value_end,
+                    boss_name,
+                ],
                 outputs=[download_output, log_percentage],
             )
 
         with gr.TabItem("фильтрация по ИНН"):
+
             gr.Markdown("## Метка 3")
 
             with gr.Row():
                 file_input = gr.File(
-                    label="Загрузите Excel файл (.xlsx)", file_types=[".xlsx"]
+                    label="Загрузите Excel файл (.xlsx)", 
+                    file_types=[".xlsx"]
                 )
                 process_button = gr.Button("Запустить процесс")
                 download_output = gr.File(label="Скачать обработанный файл")
-                dataframe = gr.Dataframe(type="polars")
+            
+            dataframe = gr.Dataframe(
+                type="polars",
+                interactive=False,  
+                wrap=True        # Оборачиваем текст
+            )
+            inn_list_show = gr.CheckboxGroup(
+                label="Выбранные ИНН",
+                interactive=True
+            )
+            
             with gr.Row():
-                sample_number = gr.Number(
-                    label="Какой интервал выборки?", value=10, precision=0
-                )
-                download_filtered = gr.File(label="Скачать отфильтрованный по шагам")
-                process_filter_button = gr.Button("Отфильтровать")
+                download_filtered = gr.File(label="Скачать разделенные по ИНН")
+                process_filter_button = gr.Button("Разложить по ИНН по листам")
+
+            def update_inn_list(df, file):
+                if df is not None and not df.is_empty():
+                    # Предполагаем, что в df есть столбец с ИНН
+                    inn_values = df['ИНН'].unique().to_list()
+                    return gr.CheckboxGroup(choices=inn_values)
+                return gr.CheckboxGroup(choices=[])
 
             process_button.click(
-                filter_by_inn,
+                fn=filter_by_inn,
                 inputs=[
                     file_input,
+                    bank_name,
+                    date_value_start,
+                    date_value_end,
+                    boss_name,
                 ],
-                outputs=[dataframe, download_output],
+                outputs=[dataframe, download_output, inn_list_show],
+            ).then(
+                fn=update_inn_list,
+                inputs=[dataframe, download_output],
+                outputs=[inn_list_show]
             )
+            
+            # Фильтрация по шагам
             process_filter_button.click(
-                filter_by_sample,
-                inputs=[file_input, sample_number],
+                filter_by_inn_split,
+                inputs=[
+                    file_input,
+                    bank_name,
+                    date_value_start,
+                    date_value_end,
+                    boss_name,
+                    inn_list_show
+                ],
                 outputs=[download_filtered],
             )
         with gr.TabItem("фильтрация"):
@@ -142,11 +192,18 @@ with gr.Blocks() as app:
 
             process_button.click(
                 filting,
-                inputs=[file_input, sheet_input, column_number, target_value],
+                inputs=[
+                    file_input,
+                    sheet_input,
+                    column_number,
+                    target_value,
+                    bank_name,
+                    date_value_start,
+                    date_value_end,
+                    boss_name,
+                ],
                 outputs=[download_output],
             )
-
-            pass
 
 if __name__ == "__main__":
     app.launch(inbrowser=True)
