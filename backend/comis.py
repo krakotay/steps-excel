@@ -1,4 +1,5 @@
 import shutil
+import tomllib
 from typing import Literal
 import pandas as pd
 import polars as pl
@@ -7,12 +8,12 @@ from tqdm import tqdm
 import numpy as np
 from make_title import create_title_page
 
-INCOME = []
-with open("../income.txt", "r") as inc:
-    INCOME = [i[:-1] for i in inc.readlines()]
-EXPENSE = []
-with open("../expense.txt", "r") as inc:
-    EXPENSE = [i[:-1] for i in inc.readlines()]
+
+with open("config.toml", "rb") as f:
+    data = tomllib.load(f)
+
+INCOME = data['numbers']['income']
+EXPENSE = data['numbers']['expense']
 
 
 def best_subset(values: np.ndarray, target: float):
