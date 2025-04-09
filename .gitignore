@@ -3,3 +3,5 @@
 examples/
 __pycache__/
 system/
+*.zip
+.DS_Store
