@@ -1,5 +1,4 @@
 import shutil
-import tomllib
 from typing import Literal
 import pandas as pd
 import polars as pl
@@ -8,12 +7,12 @@ from tqdm import tqdm
 import numpy as np
 from make_title import create_title_page
 
-
-with open("config.toml", "rb") as f:
-    data = tomllib.load(f)
-
-INCOME = data['numbers']['income']
-EXPENSE = data['numbers']['expense']
+INCOME = []
+with open("../income.txt", "r") as inc:
+    INCOME = [i[:-1] for i in inc.readlines()]
+EXPENSE = []
+with open("../expense.txt", "r") as inc:
+    EXPENSE = [i[:-1] for i in inc.readlines()]
 
 
 def best_subset(values: np.ndarray, target: float):
@@ -143,6 +142,7 @@ def comiss(
             value = EXPENSE
     print(f"values = {value}")
     df = df.filter(df["Лицевой счет"].str.starts_with("706"))
+    print(df)
     filtered = df.filter(df["Лицевой счет"].str.contains_any(value))
     if timevalue == "Не первый":
         COLUMN = "рабочий остаток"
