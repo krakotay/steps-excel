@@ -50,9 +50,10 @@ def filting(file, sheet_name: str, column: int, target_value: int, bank_name: st
             sheet_name="ВЫБОРКА",
             index=False,
         )
+        create_title_page(writer.book, bank_name, date_start, date_end, boss_name)
 
     # Добавляем титульный лист
-    create_title_page(out_filename, bank_name, date_start, date_end, boss_name)
+    
 
     print(f"Готово! Проверьте файл {out_filename}")
     return out_filename

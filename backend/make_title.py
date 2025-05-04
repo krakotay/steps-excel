@@ -1,14 +1,10 @@
-import pandas as pd
-from openpyxl import load_workbook
+from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side
-from openpyxl.utils import get_column_letter
 
-def create_title_page(workbook_path: str, bank_name: str, date_start: str, date_end: str, boss_name: str):
+def create_title_page(wb: Workbook, bank_name: str, date_start: str, date_end: str, boss_name: str):
     """
     Добавляет титульный лист в существующий Excel файл
     """
-    # Загружаем существующий файл
-    wb = load_workbook(workbook_path)
     
     # Создаем новый лист и перемещаем его в начало
     if "Титульник" in wb.sheetnames:
@@ -64,7 +60,3 @@ def create_title_page(workbook_path: str, bank_name: str, date_start: str, date_
     for row in ws['B4:D12']:
         for cell in row:
             cell.border = thin_border
-
-    # Сохраняем файл
-    wb.save(workbook_path)
-    return workbook_path 

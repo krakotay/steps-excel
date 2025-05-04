@@ -4,6 +4,7 @@ from comis import comiss
 from inn import filter_by_inn, filter_by_inn_split
 from filter import filting
 import polars as pl
+
 # Создаем интерфейс с использованием Gradio Blocks и вкладок
 with gr.Blocks() as app:
     gr.HTML("""<h1 style="color: darkgreen;">ООО КНК</h1>""")
@@ -55,7 +56,7 @@ with gr.Blocks() as app:
                     date_value_end,
                     boss_name,
                 ],
-                outputs=[download_output],
+                outputs=[output_text, download_output],
             )
 
         with gr.TabItem("комиссионки"):

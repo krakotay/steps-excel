@@ -10,7 +10,7 @@ def sample_process(file, sheet_name: str, start: int, green_const: int, yellow_c
     out_filename = filename.replace(".xlsx", "_out.xlsx")
     shutil.copy(filename, out_filename)
     print(f"Создана копия файла: {out_filename}")
-
+    yield f"Создана копия файла: {out_filename}", None
     # Читаем исходный лист через polars
     print("Читаем исходный лист...")
     df = pl.read_excel(out_filename, sheet_name=sheet_name)[start:]
@@ -36,6 +36,8 @@ def sample_process(file, sheet_name: str, start: int, green_const: int, yellow_c
     # print("yellow_df:", yellow_df)
     # print("green_df:", green_df)
     # Записываем данные в новый лист в скопированном файле
+    print("Записываем данные в новый лист в скопированном файле")
+    yield "Записываем данные в новый лист в скопированном файле", None
     with pd.ExcelWriter(
         out_filename, mode="a", engine="openpyxl", if_sheet_exists="overlay"
     ) as writer:
@@ -49,12 +51,14 @@ def sample_process(file, sheet_name: str, start: int, green_const: int, yellow_c
             sheet_name=f"{sheet_name}_GREEN_{len(green_df)}_{green_df.height}",
             index=False,
         )
+        print('Добавляем титульный лист')
+        yield 'Добавляем титульный лист', None
 
-    # Добавляем титульный лист
-    create_title_page(out_filename, bank_name, date_start, date_end, boss_name)
+        create_title_page(writer.book, bank_name, date_start, date_end, boss_name)
+
 
     print(f"Готово! Проверьте файл {out_filename}")
-    return out_filename
+    yield f"Готово! Проверьте файл {out_filename}", out_filename
 
 def scan_excel(file, sheet_name):
     filename = file.name

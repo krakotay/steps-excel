@@ -6,12 +6,16 @@ import itertools
 from tqdm import tqdm
 import numpy as np
 from make_title import create_title_page
+import os
+base_dir = os.path.dirname(__file__)
+income_path = os.path.join(base_dir, "../income.txt")
+expense_path = os.path.join(base_dir, "../expense.txt")
 
 INCOME = []
-with open("../income.txt", "r") as inc:
+with open(income_path, "r") as inc:
     INCOME = [i[:-1] for i in inc.readlines()]
 EXPENSE = []
-with open("../expense.txt", "r") as inc:
+with open(expense_path, "r") as inc:
     EXPENSE = [i[:-1] for i in inc.readlines()]
 
 
@@ -176,9 +180,9 @@ def comiss(
         log_output = filter_by_target_percent(
             filtered, writer, target_value, COLUMN
         )
+        create_title_page(writer.book, bank_name, date_start, date_end, boss_name)
 
-    # Добавляем титульный лист
-    create_title_page(out_filename, bank_name, date_start, date_end, boss_name)
+
 
     print(f"Готово! Проверьте файл {out_filename}")
     return out_filename, log_output

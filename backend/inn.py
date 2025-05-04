@@ -29,8 +29,7 @@ def filter_by_inn(file, bank_name: str, date_start: str, date_end: str, boss_nam
             index=False,
         )
 
-    # Добавляем титульный лист
-    create_title_page(output_filename, bank_name, date_start, date_end, boss_name)
+        create_title_page(writer.book, bank_name, date_start, date_end, boss_name)
     inns = aggregated_df["ИНН"].to_list()
     print("inns", inns)
     return aggregated_df, output_filename, inns
@@ -50,8 +49,7 @@ def filter_by_inn_split(file, bank_name: str, date_start: str, date_end: str, bo
                 index=False
             )
 
-    # Добавляем титульный лист
-    create_title_page(output_filename, bank_name, date_start, date_end, boss_name)
+        create_title_page(writer.book, bank_name, date_start, date_end, boss_name)
 
     
     # Добавляем титульный лист
