@@ -1,0 +1,12 @@
+*.7z
+.venv
+examples/
+__pycache__/
+system/
+*.zip
+.DS_Store
+примеры/
+*.ipynb
+*.xlsx
+backend/.gitignore
+*.txt
