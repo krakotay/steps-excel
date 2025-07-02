@@ -2,8 +2,7 @@ import shutil
 from typing import Literal
 import pandas as pd
 import polars as pl
-import itertools
-from tqdm import tqdm
+# from tqdm import tqdm
 import numpy as np
 from make_title import create_title_page
 import os
@@ -19,37 +18,39 @@ with open(expense_path, "r") as inc:
     EXPENSE = [i[:-1] for i in inc.readlines()]
 
 
-def best_subset(values: np.ndarray, target: float):
-    n = len(values)
-    best_sum = None
-    best_diff = np.inf
-    best_subset_indices = None
 
-    # Перебираем все подмножества по их размеру (от 1 до n)
-    for r in tqdm(range(1, n + 1), desc="Перебор комбинаций"):
-        # Получаем все комбинации индексов размера r
-        comb_indices = np.array(list(itertools.combinations(range(n), r)))
-        # Если комбинаций нет — пропускаем (хотя здесь всегда будет, если r>=1)
-        if comb_indices.size == 0:
-            continue
+def best_subset(values_arr: np.ndarray, target: float):
+    """
+    Берет элементы из 'values' последовательно, пока их сумма
+    не станет больше или равна 'target'.
+    """
+    # Если цель не положительная, ничего не берем
+    if target <= 0:
+        return [], target
 
-        # Вычисляем сумму для каждой комбинации через numpy (массово, без цикла)
-        subset_sums = np.sum(values[comb_indices], axis=1)
-        # Вычисляем абсолютную разницу между суммой подмножества и целевым значением
-        diffs = np.abs(target - subset_sums)
+    # Если список пуст, ничего не возвращаем
+    if values_arr.size == 0:
+        return [], target
 
-        # Находим индекс минимальной разницы в этом батче
-        min_idx = np.argmin(diffs)
-        if diffs[min_idx] < best_diff:
-            best_diff = diffs[min_idx]
-            best_sum = subset_sums[min_idx]
-            best_subset_indices = comb_indices[min_idx]
-            # Если решение достаточно близкое (ошибка <= 5%), выходим сразу
-            if (diffs[min_idx] / target) <= 0.05:
-                return values[list(best_subset_indices)], best_sum
+    # Вычисляем нарастающую сумму
+    cumsum = np.cumsum(values_arr)
 
-    return values[list(best_subset_indices)], best_sum
+    # Находим индекс, где нарастающая сумма впервые достигает или превышает цель.
+    # np.searchsorted эффективно находит этот индекс в отсортированном массиве (cumsum отсортирован).
+    k = np.searchsorted(cumsum, target)
 
+    # Если k выходит за пределы массива, это означает, что сумма всех значений
+    # меньше цели. В этом случае мы берем все значения.
+    if k >= len(values_arr):
+        subset = values_arr
+    else:
+        # В противном случае мы берем срез до найденного индекса включительно.
+        subset = values_arr[:k + 1]
+
+    # Вычисляем остаток от цели
+    remaining_target = target - subset.sum()
+    
+    return subset, remaining_target
 
 type Abbr = Literal[
     "входящий актив",
@@ -63,6 +64,9 @@ def filter_by_target_percent(
     df: pl.DataFrame, writer: pd.ExcelWriter, value: int, column: str
 ):
     COLUMN = column
+    df = df.with_columns(
+        pl.col(COLUMN).cast(pl.Float64).round(2)
+    )
     df = df.sort(by=COLUMN)
     target = df[COLUMN].sum()
     original_sum = target
@@ -83,7 +87,7 @@ def filter_by_target_percent(
         sample += largest_df[COLUMN].sum()
         print(f"Пересчитанная цель: {target}")
 
-    df_values = df[COLUMN].filter(df[COLUMN] > 0).to_numpy()
+    df_values = df[COLUMN].filter(df[COLUMN] > 0).sort(descending=True).to_numpy()
     column_summ = df[COLUMN].sum()
     if column_summ > target:
         best_sub, summary = best_subset(df_values, target)
