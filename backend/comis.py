@@ -2,10 +2,10 @@ import shutil
 from typing import Literal
 import pandas as pd
 import polars as pl
-# from tqdm import tqdm
 import numpy as np
 from make_title import create_title_page
 import os
+from make_numeric import change_numeric_format
 base_dir = os.path.dirname(__file__)
 income_path = os.path.join(base_dir, "../income.txt")
 expense_path = os.path.join(base_dir, "../expense.txt")
@@ -16,7 +16,6 @@ with open(income_path, "r") as inc:
 EXPENSE = []
 with open(expense_path, "r") as inc:
     EXPENSE = [i[:-1] for i in inc.readlines()]
-
 
 
 def best_subset(values_arr: np.ndarray, target: float):
@@ -45,28 +44,27 @@ def best_subset(values_arr: np.ndarray, target: float):
         subset = values_arr
     else:
         # В противном случае мы берем срез до найденного индекса включительно.
-        subset = values_arr[:k + 1]
+        subset = values_arr[: k + 1]
 
     # Вычисляем остаток от цели
     remaining_target = target - subset.sum()
-    
+
     return subset, remaining_target
 
+
 type Abbr = Literal[
-    "входящий актив",
-    "входящий пассив",
-    "исходящий актив",
-    "исходящий пассив",
-]  # актив - доход, пассив - расход
+    "Входящий руб.(К)",
+    "Входящий руб.(Д)",
+    "Исходящий руб.(К)",
+    "Исходящий руб.(Д)",
+]
 
 
 def filter_by_target_percent(
     df: pl.DataFrame, writer: pd.ExcelWriter, value: int, column: str
 ):
     COLUMN = column
-    df = df.with_columns(
-        pl.col(COLUMN).cast(pl.Float64).round(2)
-    )
+    df = df.with_columns(pl.col(COLUMN).cast(pl.Float64).round(2))
     df = df.sort(by=COLUMN)
     target = df[COLUMN].sum()
     original_sum = target
@@ -81,13 +79,18 @@ def filter_by_target_percent(
             writer,
             sheet_name=f"LARGEST_{value}_PERCENT",
             index=False,
+            float_format="%.2f",
         )
+        change_numeric_format(writer.book, f"LARGEST_{value}_PERCENT")
+
         df = df.join(largest_df, on=COLUMN, how="anti")
-        target = df[COLUMN].sum() * value * 0.01
-        sample += largest_df[COLUMN].sum()
+        target = float(df[COLUMN].sum()) * value * 0.01
+        sample += float(largest_df[COLUMN].sum())
         print(f"Пересчитанная цель: {target}")
 
-    df_values = df[COLUMN].filter(df[COLUMN] > 0).sort(descending=True).to_numpy()
+    df_values = (
+        df[COLUMN].filter(df[COLUMN] > 0).sort(descending=True).to_numpy()
+    )
     column_summ = df[COLUMN].sum()
     if column_summ > target:
         best_sub, summary = best_subset(df_values, target)
@@ -108,7 +111,9 @@ def filter_by_target_percent(
         writer,
         sheet_name=f"FILTERED_BY_{value}_PERCENT",
         index=False,
+        float_format="%.2f",
     )
+    change_numeric_format(writer.book, f"FILTERED_BY_{value}_PERCENT")
     sample_df = pl.DataFrame(
         {"сумма выборки": sample, "процент": sample / original_sum}
     )
@@ -116,7 +121,9 @@ def filter_by_target_percent(
         writer,
         sheet_name="ВЫБОРКА",
         index=False,
+        float_format="%.2f",
     )
+    change_numeric_format(writer.book, "ВЫБОРКА")
 
     print("С большим количеством элементов готово!")
     return log_output
@@ -141,7 +148,11 @@ def comiss(
     print(f"Создана копия файла: {out_filename}")
 
     # Читаем через polars
-    df = pl.read_excel(out_filename, sheet_name=sheet_name)
+    df = pl.read_excel(
+        out_filename,
+        sheet_name=sheet_name,
+        read_options={"header_row": 3, "use_columns": "D:K"},
+    )
     value = ""
     match type_value:
         case "Доход":
@@ -152,23 +163,25 @@ def comiss(
     df = df.filter(df["Лицевой счет"].str.starts_with("706"))
     print(df)
     filtered = df.filter(df["Лицевой счет"].str.contains_any(value))
+
     if timevalue == "Не первый":
         COLUMN = "рабочий остаток"
         if type_value == "Доход":
-            INP: Abbr = "входящий пассив"
-            OUT: Abbr = "исходящий пассив"
+            INP: Abbr = "Входящий руб.(К)"
+            OUT: Abbr = "Исходящий руб.(К)"
         else:
-            INP: Abbr = "входящий актив"
-            OUT: Abbr = "исходящий актив"
-        filtered = filtered.with_columns((filtered[OUT] - filtered[INP]).alias(COLUMN))
+            INP: Abbr = "Входящий руб.(Д)"
+            OUT: Abbr = "Исходящий руб.(Д)"
+        filtered = filtered.with_columns((filtered[OUT] + filtered[INP]).alias(COLUMN))
     else:
         if type_value == "Доход":
-            COLUMN: Abbr = "исходящий пассив"
+            COLUMN: Abbr = "Исходящий руб.(К)"
         else:
-            COLUMN: Abbr = "исходящий актив"
+            COLUMN: Abbr = "Исходящий руб.(Д)"
 
     print("Отфильтрованный: ", filtered)
-
+    if filtered[COLUMN].sum() == 0:
+        return None, "Внимание! Деление на ноль!"
     # Запись в (уже скопированный) файл
     print("\nЗаписываем в копию файла...")
 
@@ -180,13 +193,12 @@ def comiss(
             writer,
             sheet_name=f"{sheet_name}_FILTERED",
             index=False,
+            float_format="%.2f",
         )
-        log_output = filter_by_target_percent(
-            filtered, writer, target_value, COLUMN
-        )
+        change_numeric_format(writer.book, f"{sheet_name}_FILTERED")
+
+        log_output = filter_by_target_percent(filtered, writer, target_value, COLUMN)
         create_title_page(writer.book, bank_name, date_start, date_end, boss_name)
-
-
 
     print(f"Готово! Проверьте файл {out_filename}")
     return out_filename, log_output

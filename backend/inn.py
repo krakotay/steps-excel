@@ -2,6 +2,7 @@ import shutil
 import polars as pl
 import pandas as pd
 from make_title import create_title_page
+from make_numeric import change_numeric_format
 
 
 def filter_by_inn(file, bank_name: str, date_start: str, date_end: str, boss_name: str):
@@ -27,7 +28,9 @@ def filter_by_inn(file, bank_name: str, date_start: str, date_end: str, boss_nam
             writer,
             sheet_name="ИНН агрегированные",
             index=False,
+            float_format="%.2f",
         )
+        change_numeric_format(writer.book, "ИНН агрегированные")
 
         create_title_page(writer.book, bank_name, date_start, date_end, boss_name)
     inns = aggregated_df["ИНН"].to_list()
@@ -46,8 +49,10 @@ def filter_by_inn_split(file, bank_name: str, date_start: str, date_end: str, bo
             df_filtered.drop("index").to_pandas().to_excel(
                 writer,
                 sheet_name=inn.strip(),
-                index=False
+                index=False,
+                float_format="%.2f",
             )
+            change_numeric_format(writer.book, inn.strip())
 
         create_title_page(writer.book, bank_name, date_start, date_end, boss_name)
 

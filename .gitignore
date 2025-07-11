@@ -6,3 +6,5 @@ system/
 *.zip
 .DS_Store
 примеры/
+release/
+backend/test.xlsx

@@ -4,23 +4,62 @@ from comis import comiss
 from inn import filter_by_inn, filter_by_inn_split
 from filter import filting
 import polars as pl
+from datetime import datetime
 
 # Создаем интерфейс с использованием Gradio Blocks и вкладок
 with gr.Blocks() as app:
+    dt_now = datetime.now()
+
     gr.HTML("""<h1 style="color: darkgreen;">ООО КНК</h1>""")
     bank_name = gr.Textbox(label="Название аудироемого лица", value="Авангард")
-    date_value_start = gr.Textbox(label="Период проверки, начало", value="01-12-2024")
-    date_value_end = gr.Textbox(label="Период проверки, конец", value="31-12-2024")
-    boss_name = gr.Textbox(label="Руководитель проверки", value="Ельхимова Татьяна Викторовна")
+    date_value_start = gr.Textbox(
+        label="Период проверки, начало",
+        value=datetime(dt_now.year, 1, 1).strftime("%d-%m-%Y"),
+    )
+    date_value_end = gr.Textbox(
+        label="Период проверки, конец", value=dt_now.strftime("%d-%m-%Y")
+    )
+    boss_name = gr.Textbox(
+        label="Руководитель проверки", value="Ельхимова Татьяна Викторовна"
+    )
     with gr.Tabs():
-        # Первая вкладка с процессингом Excel файла
-        with gr.TabItem("Метод систематической выборки (по шагам)"):
-            gr.Markdown("## Метка 1")
+        with gr.TabItem("Балансовый счет"):
+            gr.Markdown("## Фильтрация по балансовому счету")
             with gr.Row():
                 file_input = gr.File(
                     label="Загрузите Excel файл (.xlsx)", file_types=[".xlsx"]
                 )
-                sheet_input = gr.Textbox(label="Название листа", value="455")
+                column_number = gr.Number(label="Цифры начала", value=706, precision=0)
+                sheet_input = gr.Textbox(label="Название листа", value="Приложение_ОСВ")
+                target_value = gr.Number(
+                    label="Сколько процентов от суммы нужно?", value=40, precision=0
+                )
+
+            process_button = gr.Button("Запустить процесс")
+            download_output = gr.File(label="Скачать обработанный файл")
+
+            process_button.click(
+                filting,
+                inputs=[
+                    file_input,
+                    sheet_input,
+                    column_number,
+                    target_value,
+                    bank_name,
+                    date_value_start,
+                    date_value_end,
+                    boss_name,
+                ],
+                outputs=[download_output],
+            )
+
+        with gr.TabItem("Метод систематической выборки (по шагам)"):
+            gr.Markdown("ОСВ")
+            with gr.Row():
+                file_input = gr.File(
+                    label="Загрузите Excel файл (.xlsx)", file_types=[".xlsx"]
+                )
+                sheet_input = gr.Textbox(label="Название листа", value="706")
             with gr.Row():
                 scan_button = gr.Button("Сканировать Excel файл")
                 start_input = gr.Number(
@@ -59,29 +98,12 @@ with gr.Blocks() as app:
                 outputs=[output_text, download_output],
             )
 
-        with gr.TabItem("комиссионки"):
-            gr.Markdown("""
-## Какие столбцы должны быть
-
-```python
-    "входящий актив" # актив - расход
-    "входящий пассив" # пассив - доход
-    "исходящий актив" 
-    "исходящий пассив"
-    "Лицевой счет" # С большой буквы, без лишних пробелов
-```
-Остальные не принципиальны
-
-Не должно быть никакой шапки, никаких данных за пределами прямоугольника
-
-Просьма избегать сумм и прочих выводов внизу.
-                        """)
-
+        with gr.TabItem("706 по символам"):
             with gr.Row():
                 file_input = gr.File(
                     label="Загрузите Excel файл (.xlsx)", file_types=[".xlsx"]
                 )
-                sheet_input = gr.Textbox(label="Название листа", value="Лист1")
+                sheet_input = gr.Textbox(label="Название листа", value="Приложение_ОСВ")
             with gr.Row():
                 type_value = gr.Radio(
                     ["Доход", "Расход"], label="Выберите тип", value="Расход"
@@ -113,27 +135,22 @@ with gr.Blocks() as app:
             )
 
         with gr.TabItem("фильтрация по ИНН"):
-
-            gr.Markdown("## Метка 3")
+            # gr.Markdown("## Метка 3")
 
             with gr.Row():
                 file_input = gr.File(
-                    label="Загрузите Excel файл (.xlsx)", 
-                    file_types=[".xlsx"]
+                    label="Загрузите Excel файл (.xlsx)", file_types=[".xlsx"]
                 )
                 process_button = gr.Button("Запустить процесс")
                 download_output = gr.File(label="Скачать обработанный файл")
-            
+
             dataframe = gr.Dataframe(
                 type="polars",
-                interactive=False,  
-                wrap=True        # Оборачиваем текст
+                interactive=False,
+                wrap=True,  # Оборачиваем текст
             )
-            inn_list_show = gr.CheckboxGroup(
-                label="Выбранные ИНН",
-                interactive=True
-            )
-            
+            inn_list_show = gr.CheckboxGroup(label="Выбранные ИНН", interactive=True)
+
             with gr.Row():
                 download_filtered = gr.File(label="Скачать разделенные по ИНН")
                 process_filter_button = gr.Button("Разложить по ИНН по листам")
@@ -141,7 +158,7 @@ with gr.Blocks() as app:
             def update_inn_list(df: pl.DataFrame):
                 if df is not None and not df.is_empty():
                     # Предполагаем, что в df есть столбец с ИНН
-                    inn_values = df['ИНН'].unique(maintain_order=True).to_list()
+                    inn_values = df["ИНН"].unique(maintain_order=True).to_list()
                     return gr.CheckboxGroup(choices=inn_values, value=None)
                 return gr.CheckboxGroup(choices=[])
 
@@ -155,12 +172,8 @@ with gr.Blocks() as app:
                     boss_name,
                 ],
                 outputs=[dataframe, download_output, inn_list_show],
-            ).then(
-                fn=update_inn_list,
-                inputs=[dataframe],
-                outputs=[inn_list_show]
-            )
-            
+            ).then(fn=update_inn_list, inputs=[dataframe], outputs=[inn_list_show])
+
             # Фильтрация по шагам
             process_filter_button.click(
                 filter_by_inn_split,
@@ -170,41 +183,9 @@ with gr.Blocks() as app:
                     date_value_start,
                     date_value_end,
                     boss_name,
-                    inn_list_show
+                    inn_list_show,
                 ],
                 outputs=[download_filtered],
             )
-        with gr.TabItem("фильтрация"):
-            gr.Markdown("""
-            ## Фильтрация по балансовому счету
-            Столбец должен называться `Лицевой счет`""")
-            with gr.Row():
-                file_input = gr.File(
-                    label="Загрузите Excel файл (.xlsx)", file_types=[".xlsx"]
-                )
-                column_number = gr.Number(label="Цифры начала", value=706, precision=0)
-                sheet_input = gr.Textbox(label="Название листа", value="Лист1")
-                target_value = gr.Number(
-                    label="Сколько процентов от суммы нужно?", value=40, precision=0
-                )
-
-            process_button = gr.Button("Запустить процесс")
-            download_output = gr.File(label="Скачать обработанный файл")
-
-            process_button.click(
-                filting,
-                inputs=[
-                    file_input,
-                    sheet_input,
-                    column_number,
-                    target_value,
-                    bank_name,
-                    date_value_start,
-                    date_value_end,
-                    boss_name,
-                ],
-                outputs=[download_output],
-            )
-
 if __name__ == "__main__":
     app.launch(inbrowser=True)
