@@ -141,24 +141,27 @@ with gr.Blocks() as app:
                 file_input = gr.File(
                     label="Загрузите Excel файл (.xlsx)", file_types=[".xlsx"]
                 )
-                process_button = gr.Button("Запустить процесс")
+                with gr.Column():
+                    sheet_input = gr.Radio(label="Название листа", choices=['дебет', 'кредит'], value='дебет')
+                    main_col_name = gr.Textbox(label="Название столбца", value="ИНН контрагента")
+                    process_button = gr.Button("Запустить процесс")
                 download_output = gr.File(label="Скачать обработанный файл")
 
             dataframe = gr.Dataframe(
-                type="polars",
+                type='pandas',
                 interactive=False,
                 wrap=True,  # Оборачиваем текст
             )
             inn_list_show = gr.CheckboxGroup(label="Выбранные ИНН", interactive=True)
 
             with gr.Row():
-                download_filtered = gr.File(label="Скачать разделенные по ИНН")
-                process_filter_button = gr.Button("Разложить по ИНН по листам")
+                download_filtered = gr.File(label="Скачать выборку")
+                process_filter_button = gr.Button("Выгрузить выборку по листам")
 
-            def update_inn_list(df: pl.DataFrame):
+            def update_inn_list(df: pl.DataFrame, main_col_name: str):
                 if df is not None and not df.is_empty():
                     # Предполагаем, что в df есть столбец с ИНН
-                    inn_values = df["ИНН"].unique(maintain_order=True).to_list()
+                    inn_values = df[main_col_name].unique(maintain_order=True).to_list()
                     return gr.CheckboxGroup(choices=inn_values, value=None)
                 return gr.CheckboxGroup(choices=[])
 
@@ -170,9 +173,11 @@ with gr.Blocks() as app:
                     date_value_start,
                     date_value_end,
                     boss_name,
+                    sheet_input,
+                    main_col_name,
                 ],
                 outputs=[dataframe, download_output, inn_list_show],
-            ).then(fn=update_inn_list, inputs=[dataframe], outputs=[inn_list_show])
+            ).then(fn=update_inn_list, inputs=[dataframe, main_col_name], outputs=[inn_list_show])
 
             # Фильтрация по шагам
             process_filter_button.click(
@@ -183,6 +188,8 @@ with gr.Blocks() as app:
                     date_value_start,
                     date_value_end,
                     boss_name,
+                    sheet_input,
+                    main_col_name,
                     inn_list_show,
                 ],
                 outputs=[download_filtered],

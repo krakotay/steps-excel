@@ -1,14 +1,14 @@
 from openpyxl import Workbook
 import locale
 locale.setlocale(locale.LC_ALL, 'ru_RU.UTF-8')
-def change_numeric_format(wb: Workbook, sheet_name: str):
+def change_numeric_format(wb: Workbook, sheet_name: str, columns: str = 'C:I'):
     """
     Добавляет титульный лист в существующий Excel файл
     """
     
     ws = wb[sheet_name]    
     # Настройка ширины столбцов
-    for col in ws['C:I']:
+    for col in ws[columns]:
         for cell in col:
             # Убедитесь, что значение — число (если оно строка, конвертируем)
             if isinstance(cell.value, str):
