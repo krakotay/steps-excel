@@ -5,7 +5,14 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "excelsior",
+    "fastexcel>=0.14.0",
     "gradio>=5.35.0",
-    "pandas>=2.3.0",
-    "polars-lts-cpu[excel]>=1.31.0",
+    "polars-lts-cpu>=1.31.0",
 ]
+
+[tool.uv.sources]
+excelsior = { path = "excelsior-0.7.0-cp313-cp313-win_amd64.whl" }
+
+
+

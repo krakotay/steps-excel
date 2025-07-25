@@ -1,13 +1,15 @@
-import shutil
-import pandas as pd
 import polars as pl
-from make_title import create_title_page
+
 from config import OSV_SCHEMA
-from decimal import Decimal
-from make_numeric import change_numeric_format
+
+from excelsior import Scanner
+
+from make_title import create_title_page_fast
+from make_numeric import change_numeric_format_fast
+
 
 def filting(
-    file,
+    filename: str,
     sheet_name: str,
     column: int,
     target_value: int,
@@ -16,18 +18,14 @@ def filting(
     date_end: str,
     boss_name: str,
 ):
-    filename: str = file.name
     column_name = str(column)
 
     # Создаем имя для выходного файла
     out_filename = filename.replace(".xlsx", "_out.xlsx")
-    # Копируем в out-файл
-    shutil.copy(filename, out_filename)
-    print(f"Создана копия файла: {out_filename}")
 
     # Читаем через polars
-    df = pl.read_excel(
-        out_filename,
+    df: pl.DataFrame = pl.read_excel(
+        filename,
         sheet_name=sheet_name,
         read_options={"header_row": 3, "use_columns": "D:K"},
         schema_overrides=OSV_SCHEMA,
@@ -42,7 +40,7 @@ def filting(
     print(df)
     summary = df["рабочий остаток"].sum()
     target = target_value * float(summary) * 0.01
-    filtered = df.filter(pl.col("рабочий остаток") >= Decimal(str(target)))
+    filtered = df.filter(pl.col("рабочий остаток") >= target)
 
     sample = filtered["рабочий остаток"].sum()
     print(f"target: {target} | summary: {summary} | sample: {sample}")
@@ -51,36 +49,27 @@ def filting(
     # Запись в (уже скопированный) файл
     print("\nЗаписываем в копию файла...")
 
-    with pd.ExcelWriter(
-        out_filename, mode="a", engine="openpyxl", if_sheet_exists="overlay"
-    ) as writer:
-        df.to_pandas().to_excel(
-            writer,
-            sheet_name=f"{sheet_name}_FILTERED",
-            index=False,
-            float_format="%.2f",
-        )
-        change_numeric_format(writer.book, f"{sheet_name}_FILTERED")
-        filtered.to_pandas().to_excel(
-            writer,
-            sheet_name=f"{sheet_name}_FILTERED_{target_value}",
-            index=False,
-            float_format="%.2f",
+    # добавляем df / f"{sheet_name}_FILTERED"
+    scanner = Scanner(filename)
+    editor = scanner.open_editor(sheet_name)
+    editor.add_worksheet(f"{sheet_name}_FILTERED").with_polars(df)
+    editor = change_numeric_format_fast(editor).set_columns_width(["C", "D", "E", "F", "G", "H", "I"], 15)
 
-        )
-        change_numeric_format(writer.book, f"{sheet_name}_FILTERED_{target_value}")
+    # добавляем filtered / f"{sheet_name}_FILTERED_{target_value}"
+    editor.add_worksheet(f"{sheet_name}_FILTERED_{target_value}").with_polars(filtered)
+    editor.add_worksheet("ВЫБОРКА").with_polars(sample_df)
+    editor = change_numeric_format_fast(editor).set_columns_width(["C", "D", "E", "F", "G", "H", "I"], 15)
 
-        sample_df.to_pandas().to_excel(
-            writer,
-            sheet_name="ВЫБОРКА",
-            index=False,
-            float_format="%.2f",
+    if "Титульник" not in scanner.get_sheets():
+        editor.add_worksheet_at("Титульник", 0)
+    else:
+        editor.with_worksheet("Титульник")
+    editor = create_title_page_fast(editor, bank_name, date_start, date_end, boss_name)
 
-        )
-        change_numeric_format(writer.book, "ВЫБОРКА")
-        create_title_page(writer.book, bank_name, date_start, date_end, boss_name)
-
-    # Добавляем титульный лист
+    editor.save(out_filename)
+    print(
+        f"new_worksheets == {Scanner(out_filename).get_sheets()}"
+    )
 
     print(f"Готово! Проверьте файл {out_filename}")
     return out_filename

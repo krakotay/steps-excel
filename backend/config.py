@@ -4,12 +4,12 @@ OSV_SCHEMA = pl.Schema(
     {
         "Лицевой счет": pl.String,
         "Наименование счета": pl.String,
-        "Входящий руб.(Д)": pl.Decimal(scale=2),
-        "Входящий руб.(К)": pl.Decimal(scale=2),
-        "Оборот руб.(Д)": pl.Decimal(scale=2),
-        "Оборот руб.(К)": pl.Decimal(scale=2),
-        "Исходящий руб.(Д)": pl.Decimal(scale=2),
-        "Исходящий руб.(К)": pl.Decimal(scale=2),
+        "Входящий руб.(Д)": pl.Float64,
+        "Входящий руб.(К)": pl.Float64,
+        "Оборот руб.(Д)": pl.Float64,
+        "Оборот руб.(К)": pl.Float64,
+        "Исходящий руб.(Д)": pl.Float64,
+        "Исходящий руб.(К)": pl.Float64,
     }
 )
 

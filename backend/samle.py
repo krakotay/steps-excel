@@ -1,12 +1,10 @@
-import shutil
-import pandas as pd
 import polars as pl
-from make_title import create_title_page
-from make_numeric import change_numeric_format
-
+from make_title import create_title_page_fast
+from make_numeric import change_numeric_format_fast
+from excelsior import Scanner
 # Функция обработки Excel файла, аналогичная твоей консольной реализации
 def sample_process(
-    file,
+    filename: str,
     sheet_name: str,
     start: int,
     green_const: int,
@@ -17,9 +15,7 @@ def sample_process(
     boss_name: str,
 ):
     # Gradio передаёт загруженный файл как объект с атрибутом .name
-    filename: str = file.name
     out_filename = filename.replace(".xlsx", "_out.xlsx")
-    shutil.copy(filename, out_filename)
     print(f"Создана копия файла: {out_filename}")
     yield f"Создана копия файла: {out_filename}", None
     # Читаем исходный лист через polars
@@ -51,39 +47,29 @@ def sample_process(
     print("green_df:", green_df)
     print(f"Строк в YELLOW: {yellow_df.height}")
     print(f"Строк в GREEN: {green_df.height}")
-    # print("yellow_df:", yellow_df)
-    # print("green_df:", green_df)
-    # Записываем данные в новый лист в скопированном файле
     print("Записываем данные в новый лист в скопированном файле")
     yield "Записываем данные в новый лист в скопированном файле", None
-    with pd.ExcelWriter(
-        out_filename, mode="a", engine="openpyxl", if_sheet_exists="overlay"
-    ) as writer:
-        yellow_df.drop("index").to_pandas().to_excel(
-            writer,
-            sheet_name=f"{sheet_name}_YELLOW_{len(yellow_df)}_{yellow_df.height}",
-            index=False,
-            float_format="%.2f",
-        )
-        change_numeric_format(writer.book, f"{sheet_name}_YELLOW_{len(yellow_df)}_{yellow_df.height}")
-        green_df.drop("index").to_pandas().to_excel(
-            writer,
-            sheet_name=f"{sheet_name}_GREEN_{len(green_df)}_{green_df.height}",
-            index=False,
-            float_format="%.2f",
-        )
-        change_numeric_format(writer.book, f"{sheet_name}_GREEN_{len(green_df)}_{green_df.height}")
-        print("Добавляем титульный лист")
-        yield "Добавляем титульный лист", None
+    scanner = Scanner(filename)
+    editor = scanner.open_editor(sheet_name)
+    editor.add_worksheet(f"{sheet_name}_YELLOW_{len(yellow_df)}_{yellow_df.height}").with_polars(yellow_df.drop("index"))
+    editor = change_numeric_format_fast(editor)
 
-        create_title_page(writer.book, bank_name, date_start, date_end, boss_name)
+    editor.add_worksheet(f"{sheet_name}_GREEN_{len(green_df)}_{green_df.height}").with_polars(green_df.drop("index"))
+    editor = change_numeric_format_fast(editor)
+    if "Титульник" not in scanner.get_sheets():
+        editor.add_worksheet_at("Титульник", 0)
+    else:
+        editor.with_worksheet("Титульник")
+    editor = create_title_page_fast(editor, bank_name, date_start, date_end, boss_name)
+
+    editor.save(out_filename)
+
 
     print(f"Готово! Проверьте файл {out_filename}")
     yield f"Готово! Проверьте файл {out_filename}", out_filename
 
 
-def scan_excel(file, sheet_name):
-    filename = file.name
+def scan_excel(filename: str, sheet_name):
     df = pl.read_excel(filename, sheet_name=sheet_name)
     total_rows = df.height
     start = sum(int(digit) for digit in str(total_rows))

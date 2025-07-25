@@ -1,11 +1,10 @@
-import shutil
 from typing import Literal
-import pandas as pd
 import polars as pl
 import numpy as np
-from make_title import create_title_page
+from make_title import create_title_page_fast
 import os
-from make_numeric import change_numeric_format
+from make_numeric import change_numeric_format_fast
+from excelsior import Scanner, Editor
 base_dir = os.path.dirname(__file__)
 income_path = os.path.join(base_dir, "../income.txt")
 expense_path = os.path.join(base_dir, "../expense.txt")
@@ -61,8 +60,8 @@ type Abbr = Literal[
 
 
 def filter_by_target_percent(
-    df: pl.DataFrame, writer: pd.ExcelWriter, value: int, column: str
-):
+    df: pl.DataFrame, editor: Editor, value: int, column: str
+) -> tuple[str, Editor]:
     COLUMN = column
     df = df.with_columns(pl.col(COLUMN).cast(pl.Float64).round(2))
     df = df.sort(by=COLUMN)
@@ -75,13 +74,9 @@ def filter_by_target_percent(
     largest_df = df.filter(df[COLUMN] >= target)
     if not largest_df.is_empty():
         print("выношу в отдельный лист")
-        largest_df.to_pandas().to_excel(
-            writer,
-            sheet_name=f"LARGEST_{value}_PERCENT",
-            index=False,
-            float_format="%.2f",
-        )
-        change_numeric_format(writer.book, f"LARGEST_{value}_PERCENT")
+        editor.add_worksheet(f"LARGEST_{value}_PERCENT").with_polars(largest_df)
+
+        editor = change_numeric_format_fast(editor)
 
         df = df.join(largest_df, on=COLUMN, how="anti")
         target = float(df[COLUMN].sum()) * value * 0.01
@@ -107,30 +102,20 @@ def filter_by_target_percent(
         if target != 0.0
         else "Там ноль"
     )
-    filtered.to_pandas().to_excel(
-        writer,
-        sheet_name=f"FILTERED_BY_{value}_PERCENT",
-        index=False,
-        float_format="%.2f",
-    )
-    change_numeric_format(writer.book, f"FILTERED_BY_{value}_PERCENT")
+    editor.add_worksheet(f"FILTERED_BY_{value}_PERCENT").with_polars(filtered)
+    editor = change_numeric_format_fast(editor)
     sample_df = pl.DataFrame(
         {"сумма выборки": sample, "процент": sample / original_sum}
     )
-    sample_df.to_pandas().to_excel(
-        writer,
-        sheet_name="ВЫБОРКА",
-        index=False,
-        float_format="%.2f",
-    )
-    change_numeric_format(writer.book, "ВЫБОРКА")
+    editor.add_worksheet("ВЫБОРКА").with_polars(sample_df)
+    editor = change_numeric_format_fast(editor)
 
     print("С большим количеством элементов готово!")
-    return log_output
+    return log_output, editor
 
 
 def comiss(
-    file,
+    filename: str,
     sheet_name: str,
     type_value: Literal["Доход", "Расход"],
     target_value: int,
@@ -140,16 +125,12 @@ def comiss(
     date_end: str,
     boss_name: str,
 ):
-    filename: str = file.name
     # Создаем имя для выходного файла
     out_filename = filename.replace(".xlsx", "_out.xlsx")
-    # Копируем в out-файл
-    shutil.copy(filename, out_filename)
-    print(f"Создана копия файла: {out_filename}")
 
     # Читаем через polars
     df = pl.read_excel(
-        out_filename,
+        filename,
         sheet_name=sheet_name,
         read_options={"header_row": 3, "use_columns": "D:K"},
     )
@@ -184,21 +165,17 @@ def comiss(
         return None, "Внимание! Деление на ноль!"
     # Запись в (уже скопированный) файл
     print("\nЗаписываем в копию файла...")
+    scanner = Scanner(filename)
+    editor = scanner.open_editor(sheet_name)
+    editor.add_worksheet(f"{sheet_name}_FILTERED").with_polars(filtered)
+    editor = change_numeric_format_fast(editor)
+    log_output, editor = filter_by_target_percent(filtered, editor, target_value, COLUMN)
+    if "Титульник" not in scanner.get_sheets():
+        editor.add_worksheet_at("Титульник", 0)
+    else:
+        editor.with_worksheet("Титульник")
 
-    # Открываем writer один раз и пишем оба листа
-    with pd.ExcelWriter(
-        out_filename, mode="a", engine="openpyxl", if_sheet_exists="overlay"
-    ) as writer:
-        filtered.to_pandas().to_excel(
-            writer,
-            sheet_name=f"{sheet_name}_FILTERED",
-            index=False,
-            float_format="%.2f",
-        )
-        change_numeric_format(writer.book, f"{sheet_name}_FILTERED")
-
-        log_output = filter_by_target_percent(filtered, writer, target_value, COLUMN)
-        create_title_page(writer.book, bank_name, date_start, date_end, boss_name)
-
+    editor = create_title_page_fast(editor, bank_name, date_start, date_end, boss_name)
+    editor.save(out_filename)
     print(f"Готово! Проверьте файл {out_filename}")
     return out_filename, log_output

@@ -126,13 +126,18 @@ wheels = [
 ]
 
 [[package]]
-name = "et-xmlfile"
-version = "2.0.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/d3/38/af70d7ab1ae9d4da450eeec1fa3918940a5fafb9055e934af8d6eb0c2313/et_xmlfile-2.0.0.tar.gz", hash = "sha256:dab3f4764309081ce75662649be815c4c9081e88f0837825f90fd28317d4da54", size = 17234, upload-time = "2024-10-25T17:25:40.039Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/c1/8b/5fe2cc11fee489817272089c4203e679c63b570a5aaeb18d852ae3cbba6a/et_xmlfile-2.0.0-py3-none-any.whl", hash = "sha256:7a91720bc756843502c3b7504c77b8fe44217c85c537d85037f0f536151b2caa", size = 18059, upload-time = "2024-10-25T17:25:39.051Z" },
+name = "excelsior"
+version = "0.7.0"
+source = { path = "excelsior-0.7.0-cp313-cp313-win_amd64.whl" }
+dependencies = [
+    { name = "pyarrow" },
 ]
+wheels = [
+    { filename = "excelsior-0.7.0-cp313-cp313-win_amd64.whl", hash = "sha256:465654b5d74f2a94413e85370ca2820dac9ca982b5a9a8a9dcbf9addb0cb91bd" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "pyarrow", specifier = ">=20" }]
 
 [[package]]
 name = "fastapi"
@@ -429,18 +434,6 @@ wheels = [
 ]
 
 [[package]]
-name = "openpyxl"
-version = "3.1.5"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "et-xmlfile" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/3d/f9/88d94a75de065ea32619465d2f77b29a0469500e99012523b91cc4141cd1/openpyxl-3.1.5.tar.gz", hash = "sha256:cf0e3cf56142039133628b5acffe8ef0c12bc902d2aadd3e0fe5878dc08d1050", size = 186464, upload-time = "2024-06-28T14:03:44.161Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/c0/da/977ded879c29cbd04de313843e76868e6e13408a94ed6b987245dc7c8506/openpyxl-3.1.5-py2.py3-none-any.whl", hash = "sha256:5282c12b107bffeef825f4617dc029afaf41d0ea60823bbb665ef3079dc79de2", size = 250910, upload-time = "2024-06-28T14:03:41.161Z" },
-]
-
-[[package]]
 name = "orjson"
 version = "3.10.18"
 source = { registry = "https://pypi.org/simple" }
@@ -566,14 +559,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/d3/4d/fbd9e8bfa8af55472b14f1700ac40bc5f06b0bd24caa2cefc2c808b2fe07/polars_lts_cpu-1.31.0-cp39-abi3-manylinux_2_24_aarch64.whl", hash = "sha256:9cea1c270b080aa5215d64d14ec251e643525f386fb669d064dea6176f45e533", size = 32260917, upload-time = "2025-06-18T12:00:12.745Z" },
     { url = "https://files.pythonhosted.org/packages/1f/a3/8f1886f8eb435f8d56db5ca4989543a5d11f050238aee440670b51f1a108/polars_lts_cpu-1.31.0-cp39-abi3-win_amd64.whl", hash = "sha256:a639c014fca4a497b24c5e16d6aabe3f9d29ddd8169d6d9aea87483138b5ece0", size = 35071460, upload-time = "2025-06-18T12:00:17.202Z" },
     { url = "https://files.pythonhosted.org/packages/57/d0/d6a9ec099bfc7520e8bba2efcf6a2876a3d79c453dce8c4dbbde3564e31c/polars_lts_cpu-1.31.0-cp39-abi3-win_arm64.whl", hash = "sha256:5e9583f21ebfa7a6e36e2527d64416a3f2892f957c68fd3adbc5516fd96eacdb", size = 31469156, upload-time = "2025-06-18T12:00:20.543Z" },
-]
-
-[package.optional-dependencies]
-excel = [
-    { name = "fastexcel" },
-    { name = "openpyxl" },
-    { name = "xlsx2csv" },
-    { name = "xlsxwriter" },
 ]
 
 [[package]]
@@ -828,16 +813,18 @@ name = "steps-excel"
 version = "0.5.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "excelsior" },
+    { name = "fastexcel" },
     { name = "gradio" },
-    { name = "pandas" },
-    { name = "polars-lts-cpu", extra = ["excel"] },
+    { name = "polars-lts-cpu" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "excelsior", path = "excelsior-0.7.0-cp313-cp313-win_amd64.whl" },
+    { name = "fastexcel", specifier = ">=0.14.0" },
     { name = "gradio", specifier = ">=5.35.0" },
-    { name = "pandas", specifier = ">=2.3.0" },
-    { name = "polars-lts-cpu", extras = ["excel"], specifier = ">=1.31.0" },
+    { name = "polars-lts-cpu", specifier = ">=1.31.0" },
 ]
 
 [[package]]
@@ -946,22 +933,4 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/86/eb/20b6cdf273913d0ad05a6a14aed4b9a85591c18a987a3d47f20fa13dcc47/websockets-15.0.1-cp313-cp313-win32.whl", hash = "sha256:ba9e56e8ceeeedb2e080147ba85ffcd5cd0711b89576b83784d8605a7df455fa", size = 176393, upload-time = "2025-03-05T20:02:53.814Z" },
     { url = "https://files.pythonhosted.org/packages/1b/6c/c65773d6cab416a64d191d6ee8a8b1c68a09970ea6909d16965d26bfed1e/websockets-15.0.1-cp313-cp313-win_amd64.whl", hash = "sha256:e09473f095a819042ecb2ab9465aee615bd9c2028e4ef7d933600a8401c79561", size = 176837, upload-time = "2025-03-05T20:02:55.237Z" },
     { url = "https://files.pythonhosted.org/packages/fa/a8/5b41e0da817d64113292ab1f8247140aac61cbf6cfd085d6a0fa77f4984f/websockets-15.0.1-py3-none-any.whl", hash = "sha256:f7a866fbc1e97b5c617ee4116daaa09b722101d4a3c170c787450ba409f9736f", size = 169743, upload-time = "2025-03-05T20:03:39.41Z" },
-]
-
-[[package]]
-name = "xlsx2csv"
-version = "0.8.4"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/36/20/94860286a308a4213581c1beacd4fc7be724250c03583fcff23aaa6107bb/xlsx2csv-0.8.4.tar.gz", hash = "sha256:2aa809888826f6af5b26c77fc7f613f2bbeada0d8cc09e5a58e0f59684bb6911", size = 221390, upload-time = "2024-11-19T17:06:07.818Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/c4/c0/15c21556362c67f1155f3643a375d50ac67559b82c768e64e800a42a2577/xlsx2csv-0.8.4-py3-none-any.whl", hash = "sha256:52ab873fc7b2f2ca75d14aee8bd1985a9f5c1bcb3cc7b80df7a5d57a40a67473", size = 15904, upload-time = "2024-11-19T17:06:05.362Z" },
-]
-
-[[package]]
-name = "xlsxwriter"
-version = "3.2.5"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/a7/47/7704bac42ac6fe1710ae099b70e6a1e68ed173ef14792b647808c357da43/xlsxwriter-3.2.5.tar.gz", hash = "sha256:7e88469d607cdc920151c0ab3ce9cf1a83992d4b7bc730c5ffdd1a12115a7dbe", size = 213306, upload-time = "2025-06-17T08:59:14.619Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/fa/34/a22e6664211f0c8879521328000bdcae9bf6dbafa94a923e531f6d5b3f73/xlsxwriter-3.2.5-py3-none-any.whl", hash = "sha256:4f4824234e1eaf9d95df9a8fe974585ff91d0f5e3d3f12ace5b71e443c1c6abd", size = 172347, upload-time = "2025-06-17T08:59:13.453Z" },
 ]

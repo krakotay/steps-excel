@@ -1,12 +1,10 @@
-import shutil
 import polars as pl
-import pandas as pd
-from make_title import create_title_page
-from make_numeric import change_numeric_format
-
+from make_title import create_title_page_fast
+from make_numeric import change_numeric_format_fast
+from excelsior import Scanner
 
 def filter_by_inn(
-    file,
+    filename: str,
     bank_name: str,
     date_start: str,
     date_end: str,
@@ -14,10 +12,8 @@ def filter_by_inn(
     sheet_input: str,
     main_col_name: str,
 ):
-    filename: str = file.name
     output_filename: str = filename.replace(".xlsx", "_out.xlsx")
-    shutil.copy(filename, output_filename)
-    df = pl.read_excel(output_filename, sheet_name=sheet_input)
+    df = pl.read_excel(filename, sheet_name=sheet_input)
 
     filtered = (
         df.select(main_col_name, "Сумма")
@@ -35,25 +31,24 @@ def filter_by_inn(
     aggregated_df = aggregated_df.with_columns(
         [(pl.col("сумма") * 100 / total_sum).round(2).alias("процент")]
     ).sort(by="сумма", descending=True)
-    with pd.ExcelWriter(
-        output_filename, mode="a", engine="openpyxl", if_sheet_exists="overlay"
-    ) as writer:
-        aggregated_df.to_pandas().to_excel(
-            writer,
-            sheet_name=f'ИНН агрегированные {sheet_input}',
-            index=False,
-            float_format="%.2f",
-        )
-        change_numeric_format(writer.book, f'ИНН агрегированные {sheet_input}', columns='C:D')
+    scanner = Scanner(filename)
+    editor = scanner.open_editor(sheet_input)
+    editor.add_worksheet(f'ИНН агрегированные {sheet_input}').with_polars(aggregated_df)
+    editor = change_numeric_format_fast(editor, columns=['C:', 'D:'])
+    if "Титульник" not in scanner.get_sheets():
+        editor.add_worksheet_at("Титульник", 0)
+    else:
+        editor.with_worksheet("Титульник")
+    editor = create_title_page_fast(editor, bank_name, date_start, date_end, boss_name)
 
-        create_title_page(writer.book, bank_name, date_start, date_end, boss_name)
     inns = aggregated_df[main_col_name].to_list()
     print("inns", inns)
-    return aggregated_df.to_pandas(), output_filename, inns
+    editor.save(output_filename)
+    return aggregated_df, output_filename, inns
 
 
 def filter_by_inn_split(
-    file,
+    filename: str,
     bank_name: str,
     date_start: str,
     date_end: str,
@@ -62,26 +57,24 @@ def filter_by_inn_split(
     main_col_name: str,
     inns_list: list[str],
 ):
-    filename: str = file.name
     output_filename: str = filename.replace(".xlsx", "_out.xlsx")
     df = pl.read_excel(output_filename, sheet_name=sheet_input).with_row_index()
-    with pd.ExcelWriter(
-        output_filename, mode="a", engine="openpyxl", if_sheet_exists="overlay"
-    ) as writer:
-        for inn in inns_list:
-            df_filtered = df.filter(
-                pl.col(main_col_name).str.strip_chars().replace("", "БЕЗ_ИНН") == inn
-            )
-            df_filtered.drop("index").to_pandas().to_excel(
-                writer,
-                sheet_name=inn.strip(),
-                index=False,
-                float_format="%.2f",
-            )
-            change_numeric_format(writer.book, inn.strip(), columns='F:G')
+    scanner = Scanner(filename)
+    editor = scanner.open_editor(sheet_input)
+    for inn in inns_list:
+        df_filtered = df.filter(
+            pl.col(main_col_name).str.strip_chars().replace("", "БЕЗ_ИНН") == inn
+        ).drop("index")
+        editor = editor.add_worksheet(inn.strip()).with_polars(df_filtered)
+        editor = change_numeric_format_fast(editor, columns=['F:', 'G:'])
 
-        create_title_page(writer.book, bank_name, date_start, date_end, boss_name)
+    if "Титульник" not in scanner.get_sheets():
+        editor.add_worksheet_at("Титульник", 0)
+    else:
+        editor.with_worksheet("Титульник")
+    editor = create_title_page_fast(editor, bank_name, date_start, date_end, boss_name)
+    editor.save(output_filename)
 
-    # Добавляем титульный лист
+    # # Добавляем титульный лист
 
     return output_filename

@@ -148,7 +148,7 @@ with gr.Blocks() as app:
                 download_output = gr.File(label="Скачать обработанный файл")
 
             dataframe = gr.Dataframe(
-                type='pandas',
+                type='polars',
                 interactive=False,
                 wrap=True,  # Оборачиваем текст
             )

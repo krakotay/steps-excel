@@ -8,3 +8,5 @@ system/
 примеры/
 release/
 backend/test.xlsx
+
+*.whl
