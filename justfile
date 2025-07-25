@@ -8,4 +8,4 @@ prep:
 
 release: prep
     Remove-Item -Path "release/ПО_ШАГАМ_*.7z" -Force -ErrorAction SilentlyContinue
-    cd release && 7z a -mx=1 "ПО_ШАГАМ_0.5.7z" "."
+    cd release && 7z a -mx=1 "ПО_ШАГАМ_2.0.7z" "."

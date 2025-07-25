@@ -3,7 +3,7 @@ from samle import process_excel_report, calculate_initial_row_params
 from comis import process_706_account_data
 from inn import filter_by_inn, filter_by_inn_split
 from filter import process_account_filter_report
-from distribute import process_disribute
+from distribute import process_disribute, scan_disribute
 import polars as pl
 from datetime import datetime
 
@@ -143,13 +143,19 @@ with gr.Blocks() as app:
                     label="Загрузите Excel файл (.xlsx)", file_types=[".xlsx"]
                 )
                 with gr.Column():
-                    sheet_input = gr.Radio(label="Название листа", choices=['дебет', 'кредит'], value='дебет')
-                    main_col_name = gr.Textbox(label="Название столбца", value="ИНН контрагента")
+                    sheet_input = gr.Radio(
+                        label="Название листа",
+                        choices=["дебет", "кредит"],
+                        value="дебет",
+                    )
+                    main_col_name = gr.Textbox(
+                        label="Название столбца", value="ИНН контрагента"
+                    )
                     process_button = gr.Button("Запустить процесс")
                 download_output = gr.File(label="Скачать обработанный файл")
 
             dataframe = gr.Dataframe(
-                type='polars',
+                type="polars",
                 interactive=False,
                 wrap=True,  # Оборачиваем текст
             )
@@ -178,7 +184,11 @@ with gr.Blocks() as app:
                     main_col_name,
                 ],
                 outputs=[dataframe, download_output, inn_list_show],
-            ).then(fn=update_inn_list, inputs=[dataframe, main_col_name], outputs=[inn_list_show])
+            ).then(
+                fn=update_inn_list,
+                inputs=[dataframe, main_col_name],
+                outputs=[inn_list_show],
+            )
 
             # Фильтрация по шагам
             process_filter_button.click(
@@ -196,12 +206,80 @@ with gr.Blocks() as app:
                 outputs=[download_filtered],
             )
         with gr.TabItem("Раскадровка"):
-            file_input = gr.File(label="Загрузите Excel файл (.xlsx)", file_types=[".xlsx"])
-            sheet_input = gr.Textbox(label="Название листа", value="Приложение_ОСВ")            
+            def update_accounts_list(df: pl.DataFrame):
+                if df is None or df.is_empty():
+                    return gr.CheckboxGroup(choices=[], value=[])
+                accounts = df["счет"].unique(maintain_order=True).to_list()
+                # По умолчанию — ничего не выбрано (или можно выбрать всё, если хочешь)
+                return gr.CheckboxGroup(choices=accounts, value=[])
+
+            def toggle_all(current_selected: list[str], df: pl.DataFrame):
+                if df is None or df.is_empty():
+                    return []
+                all_accounts = df["счет"].unique(maintain_order=True).to_list()
+                if set(current_selected) == set(all_accounts):
+                    # Всё уже выбрано — снимаем выделение
+                    return []
+                else:
+                    # Выделяем все
+                    return all_accounts
+
+            file_input = gr.File(
+                label="Загрузите Excel файл (.xlsx)", file_types=[".xlsx"]
+            )
+            sheet_input = gr.Textbox(label="Название листа", value="Приложение_ОСВ")
             len_number = gr.Number(label="Сколько цифр", value=3, precision=0)
-            process_button = gr.Button("Запустить процесс")
+
+
+            scan_button = gr.Button("Сканировать")
+
+            with gr.Row():
+                df_output = gr.Dataframe(type="polars", label="Сколько получилось", interactive=False)
+                with gr.Column():
+                    accounts_list = gr.CheckboxGroup(label="Выбранные счета", choices=[], value=[])
+                    toggle_button = gr.Button("Выделить всё / снять")
+                    selected_count = gr.Textbox(label="Сколько выбрано", value="0", interactive=False)
+
+            text_field = gr.Textbox(label="Всего записей", value="0", interactive=False)
+            process_button = gr.Button("Обработать файл")
             download_output = gr.File(label="Скачать обработанный файл")
 
+            # 1) Сканируем
+            scan_evt = scan_button.click(
+                scan_disribute,
+                inputs=[file_input, sheet_input, len_number],
+                outputs=[df_output, text_field],
+            )
+
+            # 2) После сканирования — заполняем чекбоксы уникальными "счет"
+            scan_evt.then(
+                fn=update_accounts_list,
+                inputs=[df_output],
+                outputs=[accounts_list],
+            )
+
+            # 3) Кнопка "Выделить всё / снять"
+            def _update_selected_count(selected: list[str]):
+                return str(len(selected))
+
+            toggle_button.click(
+                fn=toggle_all,
+                inputs=[accounts_list, df_output],
+                outputs=[accounts_list],
+            ).then(
+                fn=_update_selected_count,
+                inputs=[accounts_list],
+                outputs=[selected_count]
+            )
+
+            # Чтобы счётчик обновлялся и при ручном выборе
+            accounts_list.change(
+                fn=_update_selected_count,
+                inputs=[accounts_list],
+                outputs=[selected_count]
+            )
+
+            # 4) Обработка файла — передаём выбранные счета
             process_button.click(
                 process_disribute,
                 inputs=[
@@ -212,6 +290,7 @@ with gr.Blocks() as app:
                     date_value_start,
                     date_value_end,
                     boss_name,
+                    accounts_list,  # <-- новое!
                 ],
                 outputs=[download_output],
             )
