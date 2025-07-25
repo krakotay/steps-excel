@@ -6,8 +6,7 @@ certifi==2025.6.15
 charset-normalizer==3.4.2
 click==8.2.1
 colorama==0.4.6
-et-xmlfile==2.0.0
-excelsior @ file:///C:/Users/krakotay/Documents/python/mama/steps-excel/excelsior-0.7.0-cp313-cp313-win_amd64.whl
+excelsior @ file:///C:/Users/krakotay/Documents/python/mama/steps-excel/excelsior-0.7.1-cp313-cp313-win_amd64.whl
 fastapi==0.115.14
 fastexcel==0.14.0
 ffmpy==0.6.0
@@ -26,13 +25,12 @@ markdown-it-py==3.0.0
 markupsafe==3.0.2
 mdurl==0.1.2
 numpy==2.3.1
-openpyxl==3.1.5
 orjson==3.10.18
 packaging==25.0
 pandas==2.3.0
 pillow==11.3.0
 polars-lts-cpu==1.31.0
-pyarrow==21.0.0
+pyarrow==20.0.0
 pydantic==2.11.7
 pydantic-core==2.33.2
 pydub==0.25.1
@@ -59,5 +57,3 @@ tzdata==2025.2
 urllib3==2.5.0
 uvicorn==0.35.0
 websockets==15.0.1
-xlsx2csv==0.8.4
-xlsxwriter==3.2.5

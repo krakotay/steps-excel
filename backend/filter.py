@@ -5,10 +5,10 @@ from config import OSV_SCHEMA
 from excelsior import Scanner
 
 from make_title import create_title_page_fast
-from make_numeric import change_numeric_format_fast
+from make_numeric import apply_numeric_format_to_columns
 
 
-def filting(
+def process_account_filter_report(
     filename: str,
     sheet_name: str,
     column: int,
@@ -53,12 +53,12 @@ def filting(
     scanner = Scanner(filename)
     editor = scanner.open_editor(sheet_name)
     editor.add_worksheet(f"{sheet_name}_FILTERED").with_polars(df)
-    editor = change_numeric_format_fast(editor).set_columns_width(["C", "D", "E", "F", "G", "H", "I"], 15)
+    editor = apply_numeric_format_to_columns(editor).set_columns_width(["C", "D", "E", "F", "G", "H", "I"], 15)
 
     # добавляем filtered / f"{sheet_name}_FILTERED_{target_value}"
     editor.add_worksheet(f"{sheet_name}_FILTERED_{target_value}").with_polars(filtered)
     editor.add_worksheet("ВЫБОРКА").with_polars(sample_df)
-    editor = change_numeric_format_fast(editor).set_columns_width(["C", "D", "E", "F", "G", "H", "I"], 15)
+    editor = apply_numeric_format_to_columns(editor).set_columns_width(["C", "D", "E", "F", "G", "H", "I"], 15)
 
     if "Титульник" not in scanner.get_sheets():
         editor.add_worksheet_at("Титульник", 0)

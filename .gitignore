@@ -10,3 +10,4 @@ release/
 backend/test.xlsx
 
 *.whl
+*.xlsx

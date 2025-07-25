@@ -127,13 +127,13 @@ wheels = [
 
 [[package]]
 name = "excelsior"
-version = "0.7.0"
-source = { path = "excelsior-0.7.0-cp313-cp313-win_amd64.whl" }
+version = "0.7.1"
+source = { path = "excelsior-0.7.1-cp313-cp313-win_amd64.whl" }
 dependencies = [
     { name = "pyarrow" },
 ]
 wheels = [
-    { filename = "excelsior-0.7.0-cp313-cp313-win_amd64.whl", hash = "sha256:465654b5d74f2a94413e85370ca2820dac9ca982b5a9a8a9dcbf9addb0cb91bd" },
+    { filename = "excelsior-0.7.1-cp313-cp313-win_amd64.whl", hash = "sha256:28e828032f4d77745808eee17caa25ade6b0b151579d097be557375dbedbca0f" },
 ]
 
 [package.metadata]
@@ -821,7 +821,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "excelsior", path = "excelsior-0.7.0-cp313-cp313-win_amd64.whl" },
+    { name = "excelsior", path = "excelsior-0.7.1-cp313-cp313-win_amd64.whl" },
     { name = "fastexcel", specifier = ">=0.14.0" },
     { name = "gradio", specifier = ">=5.35.0" },
     { name = "polars-lts-cpu", specifier = ">=1.31.0" },

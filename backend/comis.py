@@ -3,7 +3,7 @@ import polars as pl
 import numpy as np
 from make_title import create_title_page_fast
 import os
-from make_numeric import change_numeric_format_fast
+from make_numeric import apply_numeric_format_to_columns
 from excelsior import Scanner, Editor
 base_dir = os.path.dirname(__file__)
 income_path = os.path.join(base_dir, "../income.txt")
@@ -76,7 +76,7 @@ def filter_by_target_percent(
         print("выношу в отдельный лист")
         editor.add_worksheet(f"LARGEST_{value}_PERCENT").with_polars(largest_df)
 
-        editor = change_numeric_format_fast(editor)
+        editor = apply_numeric_format_to_columns(editor)
 
         df = df.join(largest_df, on=COLUMN, how="anti")
         target = float(df[COLUMN].sum()) * value * 0.01
@@ -103,18 +103,18 @@ def filter_by_target_percent(
         else "Там ноль"
     )
     editor.add_worksheet(f"FILTERED_BY_{value}_PERCENT").with_polars(filtered)
-    editor = change_numeric_format_fast(editor)
+    editor = apply_numeric_format_to_columns(editor)
     sample_df = pl.DataFrame(
         {"сумма выборки": sample, "процент": sample / original_sum}
     )
     editor.add_worksheet("ВЫБОРКА").with_polars(sample_df)
-    editor = change_numeric_format_fast(editor)
+    editor = apply_numeric_format_to_columns(editor)
 
     print("С большим количеством элементов готово!")
     return log_output, editor
 
 
-def comiss(
+def process_706_account_data(
     filename: str,
     sheet_name: str,
     type_value: Literal["Доход", "Расход"],
@@ -168,7 +168,7 @@ def comiss(
     scanner = Scanner(filename)
     editor = scanner.open_editor(sheet_name)
     editor.add_worksheet(f"{sheet_name}_FILTERED").with_polars(filtered)
-    editor = change_numeric_format_fast(editor)
+    editor = apply_numeric_format_to_columns(editor)
     log_output, editor = filter_by_target_percent(filtered, editor, target_value, COLUMN)
     if "Титульник" not in scanner.get_sheets():
         editor.add_worksheet_at("Титульник", 0)

@@ -1,9 +1,9 @@
 import polars as pl
 from make_title import create_title_page_fast
-from make_numeric import change_numeric_format_fast
+from make_numeric import apply_numeric_format_to_columns
 from excelsior import Scanner
 # Функция обработки Excel файла, аналогичная твоей консольной реализации
-def sample_process(
+def process_excel_report(
     filename: str,
     sheet_name: str,
     start: int,
@@ -52,10 +52,10 @@ def sample_process(
     scanner = Scanner(filename)
     editor = scanner.open_editor(sheet_name)
     editor.add_worksheet(f"{sheet_name}_YELLOW_{len(yellow_df)}_{yellow_df.height}").with_polars(yellow_df.drop("index"))
-    editor = change_numeric_format_fast(editor)
+    editor = apply_numeric_format_to_columns(editor)
 
     editor.add_worksheet(f"{sheet_name}_GREEN_{len(green_df)}_{green_df.height}").with_polars(green_df.drop("index"))
-    editor = change_numeric_format_fast(editor)
+    editor = apply_numeric_format_to_columns(editor)
     if "Титульник" not in scanner.get_sheets():
         editor.add_worksheet_at("Титульник", 0)
     else:
@@ -69,7 +69,7 @@ def sample_process(
     yield f"Готово! Проверьте файл {out_filename}", out_filename
 
 
-def scan_excel(filename: str, sheet_name):
+def calculate_initial_row_params(filename: str, sheet_name):
     df = pl.read_excel(filename, sheet_name=sheet_name)
     total_rows = df.height
     start = sum(int(digit) for digit in str(total_rows))

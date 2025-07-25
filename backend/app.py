@@ -1,8 +1,9 @@
 import gradio as gr
-from samle import sample_process, scan_excel
-from comis import comiss
+from samle import process_excel_report, calculate_initial_row_params
+from comis import process_706_account_data
 from inn import filter_by_inn, filter_by_inn_split
-from filter import filting
+from filter import process_account_filter_report
+from distribute import process_disribute
 import polars as pl
 from datetime import datetime
 
@@ -39,7 +40,7 @@ with gr.Blocks() as app:
             download_output = gr.File(label="Скачать обработанный файл")
 
             process_button.click(
-                filting,
+                process_account_filter_report,
                 inputs=[
                     file_input,
                     sheet_input,
@@ -78,12 +79,12 @@ with gr.Blocks() as app:
             output_text = gr.Textbox(label="Лог выполнения", interactive=False)
 
             scan_button.click(
-                scan_excel,
+                calculate_initial_row_params,
                 inputs=[file_input, sheet_input],
                 outputs=[start_input, rows],
             )
             process_button.click(
-                sample_process,
+                process_excel_report,
                 inputs=[
                     file_input,
                     sheet_input,
@@ -119,7 +120,7 @@ with gr.Blocks() as app:
             log_percentage = gr.Textbox(label="Результаты", interactive=False)
 
             process_button.click(
-                comiss,
+                process_706_account_data,
                 inputs=[
                     file_input,
                     sheet_input,
@@ -194,5 +195,28 @@ with gr.Blocks() as app:
                 ],
                 outputs=[download_filtered],
             )
+        with gr.TabItem("Раскадровка"):
+            file_input = gr.File(label="Загрузите Excel файл (.xlsx)", file_types=[".xlsx"])
+            sheet_input = gr.Textbox(label="Название листа", value="Приложение_ОСВ")            
+            len_number = gr.Number(label="Сколько цифр", value=3, precision=0)
+            process_button = gr.Button("Запустить процесс")
+            download_output = gr.File(label="Скачать обработанный файл")
+
+            process_button.click(
+                process_disribute,
+                inputs=[
+                    file_input,
+                    sheet_input,
+                    len_number,
+                    bank_name,
+                    date_value_start,
+                    date_value_end,
+                    boss_name,
+                ],
+                outputs=[download_output],
+            )
+
+
+
 if __name__ == "__main__":
     app.launch(inbrowser=True)

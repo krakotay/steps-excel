@@ -1,6 +1,6 @@
 import polars as pl
 from make_title import create_title_page_fast
-from make_numeric import change_numeric_format_fast
+from make_numeric import apply_numeric_format_to_columns
 from excelsior import Scanner
 
 def filter_by_inn(
@@ -34,7 +34,7 @@ def filter_by_inn(
     scanner = Scanner(filename)
     editor = scanner.open_editor(sheet_input)
     editor.add_worksheet(f'ИНН агрегированные {sheet_input}').with_polars(aggregated_df)
-    editor = change_numeric_format_fast(editor, columns=['C:', 'D:'])
+    editor = apply_numeric_format_to_columns(editor, columns=['C:', 'D:'])
     if "Титульник" not in scanner.get_sheets():
         editor.add_worksheet_at("Титульник", 0)
     else:
@@ -66,7 +66,7 @@ def filter_by_inn_split(
             pl.col(main_col_name).str.strip_chars().replace("", "БЕЗ_ИНН") == inn
         ).drop("index")
         editor = editor.add_worksheet(inn.strip()).with_polars(df_filtered)
-        editor = change_numeric_format_fast(editor, columns=['F:', 'G:'])
+        editor = apply_numeric_format_to_columns(editor, columns=['F:', 'G:'])
 
     if "Титульник" not in scanner.get_sheets():
         editor.add_worksheet_at("Титульник", 0)
